@@ -1,15 +1,39 @@
-#!/usr/bin/python3
-import random
 import sys
-from time import sleep
-import datetime
 
-for i in range(10000):
-    sleep(random.random())
-    sys.stdout.write("{:d}.{:d}.{:d}.{:d} - [{}] \"GET /projects/260 HTTP/1.1\" {} {}\n".format(
-        random.randint(1, 255), random.randint(1, 255), random.randint(1, 255), random.randint(1, 255),
-        datetime.datetime.now(),
-        random.choice([200, 301, 400, 401, 403, 404, 405, 500]),
-        random.randint(1, 1024)
-    ))
-    sys.stdout.flush()
+total_size = 0
+lines_count = 0
+status_count = {}
+
+def print_stats():
+    print("Total file size: {}".format(total_size))
+    print("Number of lines by status code:")
+    for status_code in sorted(status_count.keys()):
+        print("{}: {}".format(status_code, status_count[status_code]))
+
+for line in sys.stdin:
+    lines_count += 1
+    line = line.strip()
+    fields = line.split()
+
+    if len(fields) != 8 or fields[4] != "\"GET" or fields[6] != "HTTP/1.1\"":
+        continue
+
+    file_size = int(fields[7])
+    total_size += file_size
+
+    status_code = int(fields[5])
+    if status_code not in status_count:
+        status_count[status_code] = 0
+    status_count[status_code] += 1
+
+    if lines_count % 10 == 0:
+        print_stats()
+        print("\n")
+
+try:
+    while True:
+        sleep(1)
+except KeyboardInterrupt:
+    pass
+
+print_stats()
